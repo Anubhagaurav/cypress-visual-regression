@@ -3,21 +3,86 @@ name: Continuous Integration
 on: [pull_request]
 
 jobs:
-  build:
+  platform-tests:
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
 
+      - name: Use Node.js 20.x
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20.x
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm run format:check
+          npm run build
+          npm install cypress
+
+      - name: Run simple tests
+        run: |
+          cd ./tests/cjs
+          npm i
+          npm run test
+
+  project-tests:
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        project-setup: [esm, cjs, ts, ts-alt]
     runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
 
+      - name: Use Node.js 20.x
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20.x
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm run build
+          npm install cypress
+
+      - name: Run plugin on ${{ matrix.project-setup }} project setup
+        run: |
+          cd ./tests/${{ matrix.project-setup }}
+          npm i
+          npm run test
+
+  plugin-tests:
     timeout-minutes: 10
 
     strategy:
       matrix:
-        node-version: [14.x, 16.x, 18.x, 19.x]
-        cypress-version: [10.11.0, 11.2.0, 12.2.0]
-
+        node-version: [18.x, 20.x]
+        cypress-version: [12.x, 13.x]
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v3
+
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
-      - run: bash test.sh ${{ matrix.cypress-version }}
+
+      - name: Install dependencies and run tests
+        run: |
+          npm ci
+          npm run build
+
+      - name: Run cypress tests
+        run: |
+          cd tests/integration
+          npm install cypress@${{ matrix.cypress-version }}
+          npm i
+          npm run cy:base-and-regression

@@ -1,0 +1,14 @@
+{
+  "name": "cjs",
+  "version": "1.0.0",
+  "description": "cjs testing project",
+  "scripts": {
+    "test": "cypress run"
+  },
+  "devDependencies": {
+    "cypress-visual-regression": "file:../../../cypress-visual-regression"
+  },
+  "peerDependencies": {
+    "cypress": "14.0.3"
+  }
+}
